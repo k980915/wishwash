@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -22,9 +25,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <meta-data
-                android:name="android.app.lib_name"
-                android:value="" />
+
         </activity>
         <activity
             android:name="com.example.wishwash.MainActivity">
@@ -39,6 +40,9 @@
         </activity>
         <activity android:name="com.example.wishwash.UserActivity">
         </activity>
+        <meta-data
+            android:name="com.kakao.sdk.AppKey"
+            android:value="f5d8224528c64594bfdbade742d2dede" />
     </application>
 
 </manifest>

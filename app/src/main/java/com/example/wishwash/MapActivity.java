@@ -14,7 +14,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 public class MapActivity extends AppCompatActivity {
-
+    @Override
     protected void onCreate (Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
