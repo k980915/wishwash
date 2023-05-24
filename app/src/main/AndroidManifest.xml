@@ -4,8 +4,9 @@
 
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.CAMERA"></uses-permission> <!--카메라 권한-->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"></uses-permission>    <!--저장소 읽기 권한-->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"></uses-permission>    <!--저장소 쓰기 권한-->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"></uses-permission><!--저장소 관리 권한-->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"></uses-permission> <!--저장소 읽기 권한-->
+    <uses-feature android:name="android.hardware.camera" android:required="true" /><!--저장소 쓰기 권한-->
 
 
     <application
@@ -50,10 +51,10 @@
             android:value="f5d8224528c64594bfdbade742d2dede"
             />
         <provider
-            android:authorities="com.example.android_wishwash.fileprovider"
             android:name="androidx.core.content.FileProvider"
-            android:exported="false"
-            android:grantUriPermissions="true">
+            android:authorities="com.example.wishwash.fileprovider"
+            android:grantUriPermissions="true"
+            android:exported="false">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>

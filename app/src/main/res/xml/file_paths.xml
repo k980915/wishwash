@@ -2,6 +2,6 @@
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
 
     <external-path
-        name="my_images"
-        path="Android/data/com.example.android_tesstwo/files/Pictures" />
+        name="my_images" path="Pictures" />
+    <external-files-path name="my_images" path="Pictures" />
 </paths>
