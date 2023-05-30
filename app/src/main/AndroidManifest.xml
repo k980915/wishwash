@@ -40,6 +40,17 @@
         </activity>
         <activity android:name="com.example.wishwash.UserActivity">
         </activity>
+        <activity android:name="com.example.wishwash.DialogActivity">
+        </activity>
+        <activity android:name="com.example.wishwash.DialogActivity_2">
+        </activity>
+        <activity android:name="com.example.wishwash.DialogActivity_3">
+        </activity>
+        <activity android:name="com.example.wishwash.DialogActivity_4">
+        </activity>
+        <activity android:name="com.example.wishwash.DialogActivity_5">
+        </activity>
+
         <meta-data
             android:name="com.kakao.sdk.AppKey"
             android:value="f5d8224528c64594bfdbade742d2dede" />

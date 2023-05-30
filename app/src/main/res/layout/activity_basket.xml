@@ -59,30 +59,82 @@
 
     <LinearLayout
         android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="-15dp">
+
+        <EditText
+            android:layout_width="130dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="10dp"
+            android:hint="상의"
+            android:gravity="center">
+        </EditText>
+
+        <EditText
+            android:layout_width="130dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="10dp"
+            android:hint="하의"
+            android:gravity="center">
+        </EditText>
+
+        <EditText
+            android:layout_width="130dp"
+            android:layout_height="match_parent"
+            android:hint="속옷"
+            android:gravity="center">
+        </EditText>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="150dp"
         android:layout_gravity="center"
-        android:gravity="center"
-        android:layout_marginBottom="90dp">
+        android:layout_marginBottom="60dp"
+        android:gravity="center">
 
         <ImageButton
             android:id="@+id/bk_4"
             android:layout_width="120dp"
             android:layout_height="120dp"
             android:layout_margin="8dp"
-            android:scaleType="fitCenter"
             android:background="@android:color/transparent"
-            android:src="@drawable/basket4">
-        </ImageButton>
+            android:scaleType="fitCenter"
+            android:src="@drawable/basket4"></ImageButton>
 
         <ImageButton
             android:id="@+id/bk_5"
             android:layout_width="120dp"
             android:layout_height="120dp"
             android:layout_margin="8dp"
-            android:scaleType="fitCenter"
             android:background="@android:color/transparent"
-            android:src="@drawable/basket5">
-        </ImageButton>
+            android:scaleType="fitCenter"
+            android:src="@drawable/basket5"></ImageButton>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="-70dp"
+        android:layout_marginBottom="40dp"
+        android:gravity="center">
+
+        <EditText
+            android:layout_width="130dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="15dp"
+            android:hint="내 바구니1"
+            android:gravity="center">
+        </EditText>
+
+        <EditText
+            android:layout_width="130dp"
+            android:layout_height="match_parent"
+            android:hint="내 바구니2"
+            android:gravity="center">
+        </EditText>
 
     </LinearLayout>
 
@@ -94,7 +146,7 @@
         android:orientation="horizontal">
 
         <ImageButton
-            android:id="@+id/bt_2"
+            android:id="@+id/bt_2_1"
             android:layout_width="75dp"
             android:layout_height="75dp"
             android:layout_margin="12dp"
@@ -103,7 +155,7 @@
             android:src="@drawable/button_2" />
 
         <ImageButton
-            android:id="@+id/bt_3"
+            android:id="@+id/bt_3_1"
             android:layout_width="75dp"
             android:layout_height="75dp"
             android:layout_margin="12dp"
@@ -112,7 +164,7 @@
             android:src="@drawable/button_3" />
 
         <ImageButton
-            android:id="@+id/bt_4"
+            android:id="@+id/bt_4_1"
             android:layout_width="75dp"
             android:layout_height="75dp"
             android:layout_margin="12dp"
@@ -121,7 +173,7 @@
             android:src="@drawable/button_4" />
 
         <ImageButton
-            android:id="@+id/bt_5"
+            android:id="@+id/bt_5_1"
             android:layout_width="75dp"
             android:layout_height="75dp"
             android:layout_margin="12dp"

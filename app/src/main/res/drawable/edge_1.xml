@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <solid android:color="#B2E7FF"/>
+
+    <stroke android:width="5dp" android:color="#6ACAE8"/>
+
+    <padding android:left="1dp" android:top="1dp" android:right="1dp" android:bottom="1dp"/>
+</shape>
