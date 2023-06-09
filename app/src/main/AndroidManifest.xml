@@ -3,10 +3,16 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.CAMERA"></uses-permission> <!--카메라 권한-->
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"></uses-permission><!--저장소 관리 권한-->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"></uses-permission> <!--저장소 읽기 권한-->
-    <uses-feature android:name="android.hardware.camera" android:required="true" /><!--저장소 쓰기 권한-->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.CAMERA"/> <!--카메라 권한-->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/> <!--저장소 관리 권한-->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/> <!--저장소 읽기 권한-->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/> <!--저장소 쓰기 권한-->
+    <uses-feature android:name="android.hardware.camera" android:required="true" /> <!--카메라 기능-->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+
 
 
     <application
@@ -35,7 +41,8 @@
         <activity
             android:name="com.example.wishwash.MainActivity">
         </activity>
-        <activity android:name="com.example.wishwash.CameraActivity">
+        <activity android:name="com.example.wishwash.CameraActivity"
+            android:exported="true">
 
         </activity>
         <activity android:name="com.example.wishwash.BasketActivity">
@@ -61,6 +68,10 @@
             android:name="com.kakao.sdk.AppKey"
             android:value="f5d8224528c64594bfdbade742d2dede"
             />
+        <meta-data
+            android:name="com.google.firebase.ml.vision.DEPENDENCIES"
+            android:value="label"
+            />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.example.wishwash.fileprovider"
@@ -70,7 +81,5 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
-
     </application>
-
 </manifest>
