@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.util.Size;
 import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -52,6 +53,7 @@ public class CameraActivity extends AppCompatActivity {
 
     private ExecutorService cameraExecutor;
     private ImageLabeler labeler;
+    private TextView TextView;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -83,6 +85,8 @@ public class CameraActivity extends AppCompatActivity {
             Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
             cameraLauncher.launch(cameraIntent);
         });
+
+
     }
 
     private boolean checkCameraPermission() {
@@ -103,6 +107,7 @@ public class CameraActivity extends AppCompatActivity {
         cameraExecutor = Executors.newSingleThreadExecutor();
     }
 
+    @SuppressLint("SetTextI18n")
     private void bindCameraPreview(@NonNull ProcessCameraProvider cameraProvider) {
         Preview preview = new Preview.Builder().build();
         CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
@@ -144,11 +149,26 @@ public class CameraActivity extends AppCompatActivity {
                                         for (ImageLabel label : labels) {
                                             label.getText();
                                             label.getConfidence();
+                                            String labelText = label.getText();
+                                            String confidenceText = String.valueOf(label.getConfidence());
+                                           getString(R.string.label_confidence, labelText, confidenceText);
+
+// Intent를 사용하여 ResultActivity로 전환
+
+
+
+
+
+
+
                                             // TODO: Process label and confidence as needed
                                         }
+
                                     })
                                     .addOnFailureListener(e -> Log.e(TAG, "Error during labeling.", e));
+
                         }
+
 
                         imageProxy.close();
                     });
@@ -212,10 +232,48 @@ public class CameraActivity extends AppCompatActivity {
 
     private void processPhoto(Bitmap photo) {
         // Process captured photo as needed
-        // For example, you can save it to a file, upload to a server, or perform further analysis
+        // For example, you can save it to a file, upload it to a server, or perform further analysis
         // Here, we simply log the width and height of the photo
         int width = photo.getWidth();
         int height = photo.getHeight();
         Log.d(TAG, "Photo width: " + width + ", height: " + height);
+
+        // You can perform additional processing on the photo here
+        // For example, you can use ML Kit to analyze the photo and extract labels
+
+        // Create an InputImage object from the Bitmap photo
+        InputImage image = InputImage.fromBitmap(photo, 0);
+
+
+        // Process the image using the labeler
+        labeler.process(image)
+                .addOnSuccessListener(labels -> {
+                    // Process the labels returned by the labeler
+                    for (ImageLabel label : labels) {
+                        String labelText = label.getText();
+                        float confidence = label.getConfidence();
+                        Log.d(TAG, "Label: " + labelText + ", Confidence: " + confidence);
+
+                        // You can perform further actions with the labels, such as displaying them in the UI
+                        // or taking specific actions based on the labels
+
+                        // For example, you can start a new activity and pass the label and confidence values
+                        Intent intent = new Intent(CameraActivity.this, ResultActivity.class);
+                        intent.putExtra("labelText", labelText);
+                        intent.putExtra("confidenceText", String.valueOf(confidence));
+                        finish();
+                        startActivity(intent);
+
+
+                    }
+
+                })
+                .addOnFailureListener(e -> {
+                    // Handle any errors that occurred during labeling
+                    Log.e(TAG, "Error during labeling.", e);
+                });
     }
+
+
+
 }

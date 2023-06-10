@@ -48,7 +48,11 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation platform('com.google.firebase:firebase-bom:32.0.0')
 
+
     implementation 'com.google.firebase:firebase-analytics'
+    //implementation 'com.kakao.sdk:v2-map:1.4.2@aar'
+    //implementation 'net.daum.mf:map-sdk:4.5.0'
+
 
     implementation 'com.google.mlkit:image-labeling:17.0.7'
     implementation 'com.google.code.gson:gson:2.8.6'

@@ -7,7 +7,6 @@ import android.widget.ImageButton;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.ExperimentalGetImage;
 
-import net.daum.android.map.MapActivity;
 
 @ExperimentalGetImage
 public class MainActivity extends AppCompatActivity {

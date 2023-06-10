@@ -47,7 +47,7 @@
         </activity>
         <activity android:name="com.example.wishwash.BasketActivity">
         </activity>
-        <activity android:name="com.example.wishwash.MapActivity">
+        <activity android:name="net.daum.android.map.MapActivity">
         </activity>
         <activity android:name="com.example.wishwash.BoardActivity">
         </activity>
@@ -62,6 +62,8 @@
         <activity android:name="com.example.wishwash.DialogActivity_4">
         </activity>
         <activity android:name="com.example.wishwash.DialogActivity_5">
+        </activity>
+        <activity android:name="com.example.wishwash.ResultActivity">
         </activity>
 
         <meta-data

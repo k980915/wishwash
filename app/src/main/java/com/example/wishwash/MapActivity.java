@@ -1,164 +1,148 @@
 package com.example.wishwash;
 
 import android.Manifest;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.Signature;
-import android.os.Build;
-import android.os.Build.VERSION;
 import android.os.Bundle;
-import android.util.Base64;
-import android.util.Log;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import net.daum.mf.map.api.MapPOIItem;
+import net.daum.mf.map.api.MapPOIItem.ImageOffset;
+import net.daum.mf.map.api.MapPOIItem.MarkerType;
+import net.daum.mf.map.api.MapPOIItem.ShowAnimationType;
 import net.daum.mf.map.api.MapPoint;
+import net.daum.mf.map.api.MapReverseGeoCoder.ReverseGeoCodingResultListener;
 import net.daum.mf.map.api.MapView;
+import net.daum.mf.map.api.MapView.CurrentLocationEventListener;
+import net.daum.mf.map.api.MapView.MapViewEventListener;
+import net.daum.mf.map.api.MapView.POIItemEventListener;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+public abstract class MapActivity extends AppCompatActivity implements CurrentLocationEventListener, MapViewEventListener, ReverseGeoCodingResultListener, POIItemEventListener {
 
-public class MapActivity extends AppCompatActivity implements MapView.CurrentLocationEventListener, MapView.MapViewEventListener {
-    private MapView mapView;
-    private ViewGroup mapViewContainer;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
 
-        try {
-            PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNATURES);
-            for (Signature signature : info.signatures) {
-                MessageDigest md = MessageDigest.getInstance("SHA");
-                md.update(signature.toByteArray());
-                Log.d("키해시는 :", Base64.encodeToString(md.digest(), Base64.DEFAULT));
-            }
-        } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-
-        // 권한ID를 가져옵니다
-        int permission = ContextCompat.checkSelfPermission(this,
-                Manifest.permission.INTERNET);
-
-        int permission2 = ContextCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION);
-
-        int permission3 = ContextCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_COARSE_LOCATION);
-
-        // 권한이 열려있는지 확인
-        if (permission == PackageManager.PERMISSION_DENIED || permission2 == PackageManager.PERMISSION_DENIED || permission3 == PackageManager.PERMISSION_DENIED) {
-            // 마쉬멜로우 이상버전부터 권한을 물어본다
-            if (VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                // 권한 체크(READ_PHONE_STATE의 requestCode를 1000으로 세팅
-                requestPermissions(
-                        new String[]{Manifest.permission.INTERNET, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
-                        1000);
-            }
-            return;
-        }
-
-        //지도를 띄우자
-        // java code
-        mapView = new MapView(this);
-        mapViewContainer = (ViewGroup) findViewById(R.id.map_view);
+        MapView mapView = new MapView(this);
+        ViewGroup mapViewContainer = findViewById(R.id.map_view);
         mapViewContainer.addView(mapView);
-        mapView.setMapViewEventListener(this);
-        mapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOnWithoutHeading);
 
+        mapView.setCurrentLocationEventListener(this);
+        mapView.setMapViewEventListener(this);
+        mapView.setPOIItemEventListener(this);
+
+        // 권한 요청
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1000);
+        } else {
+            startLocationService();
+        }
     }
 
-    // 권한 체크 이후로직
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grandResults) {
-        // READ_PHONE_STATE의 권한 체크 결과를 불러온다
-        super.onRequestPermissionsResult(requestCode, permissions, grandResults);
-        if (requestCode == 1000) {
-            boolean check_result = true;
+    private void startLocationService() {
+    }
 
-            // 모든 퍼미션을 허용했는지 체크
-            for (int result : grandResults) {
-                if (result != PackageManager.PERMISSION_GRANTED) {
-                    check_result = false;
-                    break;
+    @Override
+    public void onCurrentLocationUpdate(MapView mapView, MapPoint currentLocation, float accuracy) {
+        // 현재 위치가 업데이트될 때 호출됩니다.
+        // 주변 세탁소를 검색하고 마커를 추가하는 기능을 여기에 추가하세요.
+        double latitude = currentLocation.getMapPointGeoCoord().latitude;
+        double longitude = currentLocation.getMapPointGeoCoord().longitude;
+
+        // 현재 위치에 마커 추가
+        MapPOIItem marker = new MapPOIItem();
+        marker.setItemName("현재 위치");
+        marker.setTag(0);
+        marker.setMapPoint(MapPoint.mapPointWithGeoCoord(latitude, longitude));
+        marker.setMarkerType(MarkerType.CustomImage);
+        marker.setCustomImageResourceId(R.drawable.marker_current_location);
+        marker.setCustomImageAutoscale(false);
+        marker.setCustomImageAnchorPointOffset(new ImageOffset(30, 30));
+        marker.setCustomImageAnchor(0.5f,1.0f);
+        marker.setShowAnimationType(ShowAnimationType.SpringFromGround);
+        marker.setDraggable(false);
+
+        mapView.addPOIItem(marker);
+
+        // 주변 세탁소 검색 및 마커 표시
+        LocalSearch localSearch = new LocalSearch();
+        localSearch.setKeyword("세탁소"); // 검색 키워드 설정
+        localSearch.setLocation(latitude, longitude); // 검색 중심 위치 설정
+        localSearch.setRadius(1000); // 검색 반경 설정 (미터 단위)
+        localSearch.setPage(1); // 검색 결과 페이지 설정
+        localSearch.setListener(new LocalSearchResponseListener() {
+            @Override
+            public void onSuccess(LocalMapPOIItem[] poiItems) {
+                // 세탁소 검색 성공 시 호출되는 콜백 메서드
+                for (LocalMapPOIItem poiItem : poiItems) {
+                    // 각 세탁소에 대한 정보를 가져와서 마커를 생성하고 추가합니다.
+                    MapPOIItem marker = new MapPOIItem();
+                    marker.setItemName(poiItem.getItemName());
+                    marker.setTag(poiItem.getTag());
+                    marker.setMapPoint(poiItem.getMapPoint());
+                    marker.setMarkerType(MarkerType.BluePin); // 마커 아이콘 유형 설정
+                    marker.setSelectedMarkerType(MarkerType.RedPin); // 선택된 마커 아이콘 유형 설정
+                    mapView.addPOIItem(marker);
                 }
             }
 
-            // 권한 체크에 동의를 하지 않으면 안드로이드 종료
-            if (check_result == false) {
-                finish();
+            @Override
+            public void onFailure(int errorCode) {
+                // 세탁소 검색 실패 시 호출되는 콜백 메서드
+                Toast.makeText(MapActivity.this, "세탁소 검색에 실패하였습니다.", Toast.LENGTH_SHORT).show();
             }
+        });
+
+        localSearch.searchPOIAsyn();
+    }
+
+    private class LocalSearch {
+        public void searchPOIAsyn() {
+        }
+
+        public void setKeyword(String 세탁소) {
+        }
+
+        public void setLocation(double latitude, double longitude) {
+        }
+
+        public void setRadius(int i) {
+        }
+
+        public void setPage(int i) {
+        }
+
+        public void setListener(LocalSearchResponseListener localSearchResponseListener) {
         }
     }
 
-    @Override
-    public void onCurrentLocationUpdate(MapView mapView, MapPoint mapPoint, float v) {
+    private abstract class LocalSearchResponseListener {
+        public abstract void onSuccess(LocalMapPOIItem[] poiItems);
 
+        public abstract void onFailure(int errorCode);
     }
 
-    @Override
-    public void onCurrentLocationDeviceHeadingUpdate(MapView mapView, float v) {
+    private class LocalMapPOIItem {
+        public int getTag() {
+            return 0;
+        }
 
+        public String getItemName() {
+            return null;
+        }
+
+        public MapPoint getMapPoint() {
+            return null;
+        }
     }
 
-    @Override
-    public void onCurrentLocationUpdateFailed(MapView mapView) {
-
-    }
-
-    @Override
-    public void onCurrentLocationUpdateCancelled(MapView mapView) {
-
-    }
-
-    @Override
-    public void onMapViewInitialized(MapView mapView) {
-
-    }
-
-    @Override
-    public void onMapViewCenterPointMoved(MapView mapView, MapPoint mapPoint) {
-
-    }
-
-    @Override
-    public void onMapViewZoomLevelChanged(MapView mapView, int i) {
-
-    }
-
-    @Override
-    public void onMapViewSingleTapped(MapView mapView, MapPoint mapPoint) {
-
-    }
-
-    @Override
-    public void onMapViewDoubleTapped(MapView mapView, MapPoint mapPoint) {
-
-    }
-
-    @Override
-    public void onMapViewLongPressed(MapView mapView, MapPoint mapPoint) {
-
-    }
-
-    @Override
-    public void onMapViewDragStarted(MapView mapView, MapPoint mapPoint) {
-
-    }
-
-    @Override
-    public void onMapViewDragEnded(MapView mapView, MapPoint mapPoint) {
-
-    }
-
-    @Override
-    public void onMapViewMoveFinished(MapView mapView, MapPoint mapPoint) {
-
+    private class CustomImageAnchorPoint {
+        public CustomImageAnchorPoint(float v, float v1) {
+        }
     }
 }
