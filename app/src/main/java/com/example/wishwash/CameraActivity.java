@@ -7,19 +7,17 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.Size;
 import android.widget.Button;
-import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ExperimentalGetImage;
 import androidx.camera.core.ImageAnalysis;
-import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
@@ -27,7 +25,10 @@ import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.firebase.ml.modeldownloader.CustomModel;
 import com.google.firebase.ml.modeldownloader.CustomModelDownloadConditions;
 import com.google.firebase.ml.modeldownloader.DownloadType;
 import com.google.firebase.ml.modeldownloader.FirebaseModelDownloader;
@@ -50,10 +51,11 @@ public class CameraActivity extends AppCompatActivity {
 
     private PreviewView previewView;
     private ActivityResultLauncher<Intent> cameraLauncher;
+    private CustomModel customModel;
 
     private ExecutorService cameraExecutor;
     private ImageLabeler labeler;
-    private TextView TextView;
+
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -66,6 +68,7 @@ public class CameraActivity extends AppCompatActivity {
 
         if (checkCameraPermission()) {
             startCamera();
+
         } else {
             requestCameraPermission();
         }
@@ -89,6 +92,9 @@ public class CameraActivity extends AppCompatActivity {
 
     }
 
+
+
+
     private boolean checkCameraPermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
     }
@@ -98,7 +104,36 @@ public class CameraActivity extends AppCompatActivity {
         cameraProviderFuture.addListener(() -> {
             try {
                 ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
-                bindCameraPreview(cameraProvider);
+
+                // Custom Model 다운로드 및 설정
+                CustomModelDownloadConditions conditions = new CustomModelDownloadConditions.Builder()
+                        .requireWifi()
+                        .build();
+
+                FirebaseModelDownloader.getInstance()
+                        .getModel("wishwash", DownloadType.LOCAL_MODEL_UPDATE_IN_BACKGROUND, conditions)
+                        .addOnSuccessListener(new OnSuccessListener<CustomModel>() {
+                            @Override
+                            public void onSuccess(CustomModel model) {
+                                // 모델 다운로드가 완료되었습니다. 여기에서 원하는 작업을 수행할 수 있습니다.
+                                // 예를 들어, 사용자 정의 모델을 사용하도록 설정하거나 원격 모델로 전환할 수 있습니다.
+
+                                // Set the ImageLabelerOptions.
+                                ImageLabelerOptions options = new ImageLabelerOptions.Builder()
+                                        .setConfidenceThreshold(0.5f)
+                                        .build();
+                                labeler = ImageLabeling.getClient(options);
+
+                                bindCameraPreview(cameraProvider); // 이미지 분석기 설정과 함께 bindCameraPreview 메서드를 호출합니다.
+                            }
+                        })
+                        .addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                // 모델 다운로드가 실패하였습니다. 에러 처리를 수행합니다.
+                                Log.e(TAG, "Model download failed.", e);
+                            }
+                        });
             } catch (ExecutionException | InterruptedException e) {
                 Log.e(TAG, "Error binding camera.", e);
             }
@@ -107,74 +142,54 @@ public class CameraActivity extends AppCompatActivity {
         cameraExecutor = Executors.newSingleThreadExecutor();
     }
 
+
     @SuppressLint("SetTextI18n")
-    private void bindCameraPreview(@NonNull ProcessCameraProvider cameraProvider) {
+    private void bindCameraPreview(ProcessCameraProvider cameraProvider) {
         Preview preview = new Preview.Builder().build();
-        CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
-        preview.setSurfaceProvider(previewView.getSurfaceProvider());
-
-        ImageAnalysis imageAnalysis =
-                new ImageAnalysis.Builder()
-                        .setTargetResolution(new Size(640, 480))
-                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .build();
-
-        ImageCapture imageCapture = new ImageCapture.Builder().build();
-
-        try {
-            cameraProvider.unbindAll();
-            cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis, imageCapture);
-        } catch (Exception e) {
-            Log.e(TAG, "Error binding camera provider.", e);
-        }
-
-        CustomModelDownloadConditions conditions = new CustomModelDownloadConditions.Builder()
-                .requireWifi()
+        CameraSelector cameraSelector = new CameraSelector.Builder()
+                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
                 .build();
 
-        FirebaseModelDownloader.getInstance()
-                .getModel("label", DownloadType.LOCAL_MODEL, conditions)
-                .addOnSuccessListener(model -> {
-                    ImageLabelerOptions options = new ImageLabelerOptions.Builder()
-                            .setConfidenceThreshold(0.7f)
-                            .build();
-                    labeler = ImageLabeling.getClient(options);
+        ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build();
 
-                    imageAnalysis.setAnalyzer(cameraExecutor, imageProxy -> {
-                        Bitmap bitmap = imageProxyToBitmap(imageProxy);
+        // 이미지 분석기 설정
+        imageAnalysis.setAnalyzer(cameraExecutor, imageProxy -> {
+            Bitmap bitmap = imageProxyToBitmap(imageProxy);
 
-                        if (bitmap != null) {
-                            labeler.process(InputImage.fromBitmap(bitmap, 0))
-                                    .addOnSuccessListener(labels -> {
-                                        for (ImageLabel label : labels) {
-                                            label.getText();
-                                            label.getConfidence();
-                                            String labelText = label.getText();
-                                            String confidenceText = String.valueOf(label.getConfidence());
-                                           getString(R.string.label_confidence, labelText, confidenceText);
+            if (bitmap != null) {
+                labeler.process(InputImage.fromBitmap(bitmap, 0))
+                        .addOnSuccessListener(labels -> {
+                            if (labels.isEmpty()) {
+                                // 결과가 없을 경우 처리할 작업을 여기에 추가하세요.
+                                // 예를 들어, 사용자에게 결과가 없음을 알리는 메시지를 표시하거나
+                                // 기본값을 사용하여 특정 작업을 수행할 수 있습니다.
+                                Log.d(TAG, "레이블링 결과 없음");
+                            } else {
+                                for (ImageLabel label : labels) {
+                                    label.getText();
+                                    label.getConfidence();
+                                    String labelText = label.getText();
+                                    String confidenceText = String.valueOf(label.getConfidence());
+                                    getString(R.string.label_confidence, labelText, confidenceText);
+                                    Log.d(TAG, "레이블링 결과 있음");
+                                }
+                            }
+                        })
+                        .addOnFailureListener(e -> Log.e(TAG, "레이블링 중 오류 발생.", e))
+                        .addOnCompleteListener(task -> imageProxy.close()); // 이미지를 처리한 후에 이미지를 해제합니다.
+            } else {
+                imageProxy.close(); // 이미지를 처리하지 못한 경우에도 이미지를 해제합니다.
+            }
+        });
 
-// Intent를 사용하여 ResultActivity로 전환
+        // CameraProvider에 미리보기 및 이미지 분석기를 바인딩합니다.
+        Camera camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
+        preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
-
-
-
-
-
-
-                                            // TODO: Process label and confidence as needed
-                                        }
-
-                                    })
-                                    .addOnFailureListener(e -> Log.e(TAG, "Error during labeling.", e));
-
-                        }
-
-
-                        imageProxy.close();
-                    });
-                })
-                .addOnFailureListener(e -> Log.e(TAG, "Model download failed.", e));
     }
+
 
     @Nullable
     private Bitmap imageProxyToBitmap(ImageProxy imageProxy) {
@@ -195,18 +210,37 @@ public class CameraActivity extends AppCompatActivity {
                 int width = imageProxy.getWidth();
                 int height = imageProxy.getHeight();
 
+                // 버퍼 유효성 검사 및 조정
+                int requiredSize = width * height * 4; // 필요한 크기 계산
+                if (buffer != null) {
+                    // 버퍼의 용량이 충분한지 확인
+                    if (buffer.capacity() >= requiredSize) {
+                        // 충분한 크기를 가지고 있으므로 해당 버퍼를 계속 사용할 수 있습니다.
+                        buffer.rewind(); // 버퍼 포인터를 처음으로 되돌립니다.
+                    } else {
+                        // 충분한 크기를 가지고 있지 않으므로 버퍼를 재할당합니다.
+                        buffer = ByteBuffer.allocate(requiredSize);
+                    }
+                } else {
+                    // 버퍼가 null인 경우에는 새로운 버퍼를 할당합니다.
+                    buffer = ByteBuffer.allocate(requiredSize);
+                }
+
                 // 비트맵 생성
                 bitmap = Bitmap.createBitmap(width + rowPadding / pixelStride, height, Bitmap.Config.ARGB_8888);
                 bitmap.copyPixelsFromBuffer(buffer);
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error converting ImageProxy to Bitmap.", e);
+            Log.e(TAG, "ImageProxy를 Bitmap으로 변환하는 중 오류가 발생했습니다.", e);
         } finally {
             // 이미지 해제
             imageProxy.close();
         }
         return bitmap;
     }
+
+
+
 
     private void requestCameraPermission() {
         ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
@@ -231,47 +265,38 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void processPhoto(Bitmap photo) {
-        // Process captured photo as needed
-        // For example, you can save it to a file, upload it to a server, or perform further analysis
-        // Here, we simply log the width and height of the photo
         int width = photo.getWidth();
         int height = photo.getHeight();
         Log.d(TAG, "Photo width: " + width + ", height: " + height);
-
-        // You can perform additional processing on the photo here
-        // For example, you can use ML Kit to analyze the photo and extract labels
-
-        // Create an InputImage object from the Bitmap photo
         InputImage image = InputImage.fromBitmap(photo, 0);
 
 
         // Process the image using the labeler
         labeler.process(image)
                 .addOnSuccessListener(labels -> {
-                    // Process the labels returned by the labeler
+                    // 결과값을 처리하는 코드를 추가합니다.
                     for (ImageLabel label : labels) {
                         String labelText = label.getText();
-                        float confidence = label.getConfidence();
-                        Log.d(TAG, "Label: " + labelText + ", Confidence: " + confidence);
+                        String confidenceText = String.valueOf(label.getConfidence());
+                        Log.d(TAG, "Label: " + labelText + ", Confidence: " + confidenceText);
 
-                        // You can perform further actions with the labels, such as displaying them in the UI
-                        // or taking specific actions based on the labels
+                        // 결과값을 UI에 표시하거나, 레이블에 기반하여 특정 동작을 수행할 수 있습니다.
 
-                        // For example, you can start a new activity and pass the label and confidence values
+                        // 예를 들어, 새로운 액티비티를 시작하고 레이블 및 신뢰도 값을 전달할 수 있습니다.
                         Intent intent = new Intent(CameraActivity.this, ResultActivity.class);
                         intent.putExtra("labelText", labelText);
-                        intent.putExtra("confidenceText", String.valueOf(confidence));
-                        finish();
+                        intent.putExtra("confidenceText", confidenceText);
+
                         startActivity(intent);
-
-
+                        finish();
                     }
 
                 })
                 .addOnFailureListener(e -> {
-                    // Handle any errors that occurred during labeling
+                    // 레이블링 중에 발생한 오류를 처리합니다.
                     Log.e(TAG, "Error during labeling.", e);
                 });
+
     }
 
 
