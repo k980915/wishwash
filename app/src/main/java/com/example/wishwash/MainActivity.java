@@ -28,11 +28,6 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        ImageButton bt_3 = findViewById(R.id.bt_3);
-        bt_3.setOnClickListener(view -> {
-            Intent intent = new Intent(getApplicationContext(), MapActivity.class);
-            startActivity(intent);
-        });
 
         ImageButton bt_4 = findViewById(R.id.bt_4);
         bt_4.setOnClickListener(view -> {

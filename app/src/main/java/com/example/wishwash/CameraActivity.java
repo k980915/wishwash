@@ -32,11 +32,11 @@ import com.google.firebase.ml.modeldownloader.CustomModel;
 import com.google.firebase.ml.modeldownloader.CustomModelDownloadConditions;
 import com.google.firebase.ml.modeldownloader.DownloadType;
 import com.google.firebase.ml.modeldownloader.FirebaseModelDownloader;
+import com.google.mlkit.common.model.LocalModel;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.label.ImageLabel;
 import com.google.mlkit.vision.label.ImageLabeler;
 import com.google.mlkit.vision.label.ImageLabeling;
-import com.google.mlkit.vision.label.defaults.ImageLabelerOptions;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
@@ -55,7 +55,10 @@ public class CameraActivity extends AppCompatActivity {
 
     private ExecutorService cameraExecutor;
     private ImageLabeler labeler;
+    private LocalModel localModel;
 
+    public CameraActivity() {
+    }
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -118,11 +121,18 @@ public class CameraActivity extends AppCompatActivity {
                                 // 모델 다운로드가 완료되었습니다. 여기에서 원하는 작업을 수행할 수 있습니다.
                                 // 예를 들어, 사용자 정의 모델을 사용하도록 설정하거나 원격 모델로 전환할 수 있습니다.
 
+                                // localModel로 설정
+                                localModel = new LocalModel.Builder()
+                                        .setCustomModel(model)
+                                        .build();
+
                                 // Set the ImageLabelerOptions.
                                 ImageLabelerOptions options = new ImageLabelerOptions.Builder()
                                         .setConfidenceThreshold(0.5f)
                                         .build();
-                                labeler = ImageLabeling.getClient(options);
+                                // localModel을 사용하여 labeler 초기화
+                                labeler = ImageLabeling.fromCustomModel(localModel, options);
+
 
                                 bindCameraPreview(cameraProvider); // 이미지 분석기 설정과 함께 bindCameraPreview 메서드를 호출합니다.
                             }
@@ -298,7 +308,6 @@ public class CameraActivity extends AppCompatActivity {
                 });
 
     }
-
 
 
 }
