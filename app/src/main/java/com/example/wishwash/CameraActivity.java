@@ -25,18 +25,13 @@ import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.firebase.ml.modeldownloader.CustomModel;
-import com.google.firebase.ml.modeldownloader.CustomModelDownloadConditions;
-import com.google.firebase.ml.modeldownloader.DownloadType;
-import com.google.firebase.ml.modeldownloader.FirebaseModelDownloader;
 import com.google.mlkit.common.model.LocalModel;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.label.ImageLabel;
 import com.google.mlkit.vision.label.ImageLabeler;
 import com.google.mlkit.vision.label.ImageLabeling;
+import com.google.mlkit.vision.label.custom.CustomImageLabelerOptions;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
@@ -51,7 +46,7 @@ public class CameraActivity extends AppCompatActivity {
 
     private PreviewView previewView;
     private ActivityResultLauncher<Intent> cameraLauncher;
-    private CustomModel customModel;
+//    private CustomModel customModel;
 
     private ExecutorService cameraExecutor;
     private ImageLabeler labeler;
@@ -108,42 +103,21 @@ public class CameraActivity extends AppCompatActivity {
             try {
                 ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
 
-                // Custom Model 다운로드 및 설정
-                CustomModelDownloadConditions conditions = new CustomModelDownloadConditions.Builder()
-                        .requireWifi()
+                // localModel을 사용하여 labeler 초기화
+                // 주의: 여기서 'options'는 어떤 방식으로든 초기화되어야 합니다.
+                // 현재 context에서는 'options'가 어떻게 정의되는지 알 수 없으므로,
+                // 필요에 따라 해당 코드를 수정해야 할 수도 있습니다.
+                LocalModel localModel = new LocalModel.Builder()
+                        .setAssetFilePath("wishwash.tflite")
                         .build();
 
-                FirebaseModelDownloader.getInstance()
-                        .getModel("wishwash", DownloadType.LOCAL_MODEL_UPDATE_IN_BACKGROUND, conditions)
-                        .addOnSuccessListener(new OnSuccessListener<CustomModel>() {
-                            @Override
-                            public void onSuccess(CustomModel model) {
-                                // 모델 다운로드가 완료되었습니다. 여기에서 원하는 작업을 수행할 수 있습니다.
-                                // 예를 들어, 사용자 정의 모델을 사용하도록 설정하거나 원격 모델로 전환할 수 있습니다.
+                CustomImageLabelerOptions options = new CustomImageLabelerOptions.Builder(localModel)
+                        .setConfidenceThreshold(0.5f)
+                        .build();
 
-                                // localModel로 설정
-                                localModel = new LocalModel.Builder()
-                                        .setCustomModel(model)
-                                        .build();
+                labeler = ImageLabeling.getClient(options);
+                bindCameraPreview(cameraProvider); // 이미지 분석기 설정과 함께 bindCameraPreview 메서드를 호출합니다.
 
-                                // Set the ImageLabelerOptions.
-                                ImageLabelerOptions options = new ImageLabelerOptions.Builder()
-                                        .setConfidenceThreshold(0.5f)
-                                        .build();
-                                // localModel을 사용하여 labeler 초기화
-                                labeler = ImageLabeling.fromCustomModel(localModel, options);
-
-
-                                bindCameraPreview(cameraProvider); // 이미지 분석기 설정과 함께 bindCameraPreview 메서드를 호출합니다.
-                            }
-                        })
-                        .addOnFailureListener(new OnFailureListener() {
-                            @Override
-                            public void onFailure(@NonNull Exception e) {
-                                // 모델 다운로드가 실패하였습니다. 에러 처리를 수행합니다.
-                                Log.e(TAG, "Model download failed.", e);
-                            }
-                        });
             } catch (ExecutionException | InterruptedException e) {
                 Log.e(TAG, "Error binding camera.", e);
             }
@@ -151,7 +125,6 @@ public class CameraActivity extends AppCompatActivity {
 
         cameraExecutor = Executors.newSingleThreadExecutor();
     }
-
 
     @SuppressLint("SetTextI18n")
     private void bindCameraPreview(ProcessCameraProvider cameraProvider) {
@@ -199,7 +172,6 @@ public class CameraActivity extends AppCompatActivity {
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
     }
-
 
     @Nullable
     private Bitmap imageProxyToBitmap(ImageProxy imageProxy) {
@@ -280,6 +252,11 @@ public class CameraActivity extends AppCompatActivity {
         Log.d(TAG, "Photo width: " + width + ", height: " + height);
         InputImage image = InputImage.fromBitmap(photo, 0);
 
+        if (labeler != null) {
+            labeler.process(image);
+        } else {
+            Log.e(TAG, "labeler is not initialized.");
+        }
 
         // Process the image using the labeler
         labeler.process(image)
